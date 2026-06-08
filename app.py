@@ -41,19 +41,18 @@ def get_telemetry():
     }
     return jsonify(data)
 
-app.register_blueprint(auth_blueprint)
+aapp.register_blueprint(auth_blueprint)
 app.register_blueprint(main)
 
+# 1. On définit la fonction
 def init_db():
     with app.app_context():
         db.create_all()
-        # Créer un utilisateur admin par défaut si nécessaire
         if not User.query.filter_by(username='admin').first():
             admin = User(username='admin', email='admin@usv.com', role='admin')
             admin.set_password('admin123')
             db.session.add(admin)
             
-        # Ajouter une donnée initiale
         if not DroneStatus.query.first():
             initial_status = DroneStatus(
                 status="Online",
@@ -82,8 +81,8 @@ def init_db():
             )
             db.session.add(initial_status)
         db.session.commit()
+
 init_db()
 
 if __name__ == '__main__':
-    init_db()
     app.run(debug=True, host='0.0.0.0', port=5000)
