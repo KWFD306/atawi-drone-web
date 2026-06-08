@@ -82,6 +82,7 @@ def init_db():
             )
             db.session.add(initial_status)
         db.session.commit()
+init_db()
 
 if __name__ == '__main__':
     init_db()
