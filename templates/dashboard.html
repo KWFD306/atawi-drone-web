@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard USV{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    .stat-card {
+        @apply glass-card p-6 flex flex-col gap-4 transition-all hover:shadow-xl;
+    }
+    .badge {
+        @apply px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider;
+    }
+    .badge-online { @apply bg-green-100 text-green-600; }
+    .badge-offline { @apply bg-red-100 text-red-600; }
+    .badge-mode { @apply bg-blue-100 text-blue-600; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    
+    <!-- Left Column: User Profile & Main Stats -->
+    <div class="lg:col-span-3 flex flex-col gap-6">
+        <div class="stat-card">
+            <div class="flex items-center gap-4 mb-4">
+                <div class="w-20 h-20 rounded-3xl bg-yellow-100 flex items-center justify-center overflow-hidden">
+                    <img src="https://ui-avatars.com/api/?name={{ current_user.username }}&size=128" alt="Profile">
+                </div>
+                <div>
+                    <h2 class="text-xl font-bold">{{ current_user.username }}</h2>
+                    <p class="text-gray-400 text-sm">Opérateur USV</p>
+                </div>
+            </div>
+            
+            <div class="space-y-4">
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-500 text-sm">Statut Drone</span>
+                    <span class="badge badge-online">{{ status.status }}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-500 text-sm">Mode</span>
+                    <span class="badge badge-mode">{{ status.mode }}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-500 text-sm">Uptime</span>
+                    <span class="font-bold text-sm">1h 05m</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <h3 class="font-bold text-gray-800">Énergie & Système</h3>
+            <div class="mt-4 flex flex-col gap-6">
+                <div>
+                    <div class="flex justify-between mb-2">
+                        <span class="text-xs text-gray-500">Batterie</span>
+                        <span class="text-xs font-bold">{{ status.battery_pct }}%</span>
+                    </div>
+                    <div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                        <div class="bg-yellow-400 h-full rounded-full" style="width: {{ status.battery_pct }}%"></div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-[10px] text-gray-400 uppercase">Tension</p>
+                        <p class="font-bold text-lg">{{ status.battery_voltage }}V</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] text-gray-400 uppercase">Temp. Int.</p>
+                        <p class="font-bold text-lg">{{ status.temp_internal }}°C</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <h3 class="font-bold text-gray-800">Alertes Récentes</h3>
+            <div class="mt-4 space-y-3">
+                <div class="flex gap-3 items-start p-2 rounded-xl bg-red-50">
+                    <div class="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center text-red-500">
+                        <i class="fas fa-exclamation-triangle text-xs"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-red-700">Obstacle détecté</p>
+                        <p class="text-[10px] text-red-500">Il y a 2 min</p>
+                    </div>
+                </div>
+                <div class="flex gap-3 items-start p-2 rounded-xl bg-blue-50">
+                    <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-500">
+                        <i class="fas fa-info-circle text-xs"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-blue-700">Waypoints mis à jour</p>
+                        <p class="text-[10px] text-blue-500">Il y a 15 min</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Middle Column: Main View & Graphs -->
+    <div class="lg:col-span-6 flex flex-col gap-6">
+        <!-- Top Stats Row -->
+        <div class="grid grid-cols-4 gap-4">
+            <div class="glass-card p-4 flex flex-col">
+                <span class="text-[10px] text-gray-400 uppercase font-bold">Vitesse</span>
+                <span class="text-2xl font-bold">{{ status.speed }} <small class="text-xs font-normal text-gray-400">kn</small></span>
+            </div>
+            <div class="glass-card p-4 flex flex-col">
+                <span class="text-[10px] text-gray-400 uppercase font-bold">Cap</span>
+                <span class="text-2xl font-bold">{{ status.heading }}°</span>
+            </div>
+            <div class="glass-card p-4 flex flex-col">
+                <span class="text-[10px] text-gray-400 uppercase font-bold">Profondeur</span>
+                <span class="text-2xl font-bold">{{ status.depth }} <small class="text-xs font-normal text-gray-400">m</small></span>
+            </div>
+            <div class="glass-card p-4 flex flex-col">
+                <span class="text-[10px] text-gray-400 uppercase font-bold">Missions</span>
+                <span class="text-2xl font-bold">203</span>
+            </div>
+        </div>
+
+        <!-- Live View / Map -->
+        <div class="glass-card p-6 flex-1 min-h-[400px] relative overflow-hidden">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold">Navigation & Carte</h3>
+                <div class="flex gap-2">
+                    <button class="px-4 py-1.5 rounded-xl bg-white border border-gray-100 text-xs font-bold">Satellite</button>
+                    <button class="px-4 py-1.5 rounded-xl bg-black text-white text-xs font-bold">Terrain</button>
+                </div>
+            </div>
+            <!-- Mock Map Container -->
+            <div class="absolute inset-0 top-20 bg-gray-100 m-6 rounded-3xl flex items-center justify-center overflow-hidden">
+                <img src="https://api.placeholder.com/800/600?text=Interactive+Map+Simulation" class="w-full h-full object-cover opacity-50">
+                <div class="absolute w-6 h-6 bg-black rounded-full border-4 border-white shadow-2xl animate-pulse"></div>
+                <div class="absolute bottom-4 left-4 bg-white/90 p-3 rounded-2xl shadow-lg border border-white">
+                    <p class="text-[10px] text-gray-400 uppercase font-bold">GPS Actuel</p>
+                    <p class="text-xs font-bold">{{ status.lat }}, {{ status.lng }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Environmental Data -->
+        <div class="grid grid-cols-2 gap-6">
+            <div class="stat-card">
+                <h3 class="font-bold text-sm">Qualité de l'eau</h3>
+                <div class="grid grid-cols-2 gap-y-4 mt-2">
+                    <div>
+                        <p class="text-[10px] text-gray-400 uppercase">Temp.</p>
+                        <p class="font-bold text-sm">{{ status.water_temp }}°C</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] text-gray-400 uppercase">pH</p>
+                        <p class="font-bold text-sm">{{ status.ph }}</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] text-gray-400 uppercase">Turbidité</p>
+                        <p class="font-bold text-sm">{{ status.turbidity }} NTU</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] text-gray-400 uppercase">Salinité</p>
+                        <p class="font-bold text-sm">{{ status.salinity }} PSU</p>
+                    </div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <h3 class="font-bold text-sm">Conditions Météo</h3>
+                <div class="grid grid-cols-2 gap-y-4 mt-2">
+                    <div>
+                        <p class="text-[10px] text-gray-400 uppercase">Vent</p>
+                        <p class="font-bold text-sm">{{ status.wind_speed }} km/h</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] text-gray-400 uppercase">Humidité</p>
+                        <p class="font-bold text-sm">{{ status.humidity }}%</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] text-gray-400 uppercase">Pression</p>
+                        <p class="font-bold text-sm">{{ status.pressure }} hPa</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] text-gray-400 uppercase">Air</p>
+                        <p class="font-bold text-sm">{{ status.air_temp }}°C</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Camera & Tasks -->
+    <div class="lg:col-span-3 flex flex-col gap-6">
+        <div class="stat-card">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold">Flux Caméra</h3>
+                <span class="w-2 h-2 bg-red-500 rounded-full animate-ping"></span>
+            </div>
+            <div class="aspect-video bg-black rounded-2xl overflow-hidden relative">
+                <img src="https://api.placeholder.com/400/300?text=Live+Video+Feed" class="w-full h-full object-cover opacity-80">
+                <div class="absolute top-2 left-2 bg-black/50 text-[8px] text-white px-2 py-1 rounded uppercase">CAM 01 - FRONT</div>
+                <div class="absolute bottom-2 right-2 flex gap-1">
+                    <button class="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center text-white text-[10px]"><i class="fas fa-expand"></i></button>
+                    <button class="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center text-white text-[10px]"><i class="fas fa-camera"></i></button>
+                </div>
+            </div>
+            <div class="mt-4 flex flex-col gap-2">
+                <div class="flex justify-between text-[10px]">
+                    <span class="text-gray-400">Détection d'objets</span>
+                    <span class="text-green-500 font-bold">ACTIF</span>
+                </div>
+                <div class="flex justify-between text-[10px]">
+                    <span class="text-gray-400">Zoom Numérique</span>
+                    <span class="text-gray-800 font-bold">1.0x</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card flex-1">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="font-bold">Missions en cours</h3>
+                <span class="text-xs font-bold">2/8</span>
+            </div>
+            
+            <div class="space-y-6">
+                <div class="flex gap-4 items-center">
+                    <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400">
+                        <i class="fas fa-map-marker-alt"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-xs font-bold">Scan Bathymétrique Zone B</p>
+                        <p class="text-[10px] text-gray-400">Prévu 14:30</p>
+                    </div>
+                    <div class="w-5 h-5 rounded-full border-2 border-yellow-400 flex items-center justify-center">
+                        <div class="w-2 h-2 bg-yellow-400 rounded-full"></div>
+                    </div>
+                </div>
+                <div class="flex gap-4 items-center">
+                    <div class="w-10 h-10 rounded-full bg-black flex items-center justify-center text-white">
+                        <i class="fas fa-flask"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-xs font-bold">Prélèvement Qualité Eau</p>
+                        <p class="text-[10px] text-gray-400">En cours...</p>
+                    </div>
+                    <div class="w-5 h-5 rounded-full bg-yellow-400 flex items-center justify-center">
+                        <i class="fas fa-check text-[8px] text-black"></i>
+                    </div>
+                </div>
+                <div class="flex gap-4 items-center opacity-40">
+                    <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400">
+                        <i class="fas fa-sync"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-xs font-bold">Retour à la base (RTL)</p>
+                        <p class="text-[10px] text-gray-400">Fin de mission</p>
+                    </div>
+                    <div class="w-5 h-5 rounded-full border-2 border-gray-200"></div>
+                </div>
+            </div>
+
+            <button class="w-full mt-10 py-3 rounded-2xl bg-gray-100 text-gray-800 text-xs font-bold hover:bg-gray-200 transition-all">Voir tout l'historique</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Simulation de mise à jour des données en temps réel
+    function updateTelemetry() {
+        fetch('/api/telemetry')
+            .then(response => response.json())
+            .then(data => {
+                // Ici on pourrait mettre à jour le DOM dynamiquement
+                // Pour cette démo, on simule juste l'appel
+                console.log("Telemetry update:", data);
+            });
+    }
+    setInterval(updateTelemetry, 5000);
+</script>
+{% endblock %}
