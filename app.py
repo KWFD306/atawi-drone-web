@@ -41,7 +41,7 @@ def get_telemetry():
     }
     return jsonify(data)
 
-aapp.register_blueprint(auth_blueprint)
+app.register_blueprint(auth_blueprint)
 app.register_blueprint(main)
 
 # 1. On définit la fonction
